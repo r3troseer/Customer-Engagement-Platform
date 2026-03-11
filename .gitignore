@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Environment variables — never commit secrets
+.env
+.env.local
+.env.*.local
+
+# uv
+.python-version
+
+# Alembic — generated migration files are committed, but not cached bytecode
+# (versions/ is intentionally NOT ignored here — commit your migrations)
+
+# Uploads / local file storage
+uploads/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+*.xml
+
+# Logs
+*.log
