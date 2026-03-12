@@ -114,19 +114,27 @@ docker run -p 8000:8000 --env-file .env cep
 1. Push to GitHub
 2. Create a new Railway project → "Deploy from GitHub repo"
 3. Railway auto-detects the `Dockerfile`
-4. Add a PostgreSQL service in Railway dashboard
-5. Set the following environment variables in Railway:
+4. Add a **PostgreSQL** service in the Railway dashboard
+5. Add a **Bucket** service in the Railway dashboard (S3-compatible object storage)
+6. Set the following environment variables in Railway:
 
 | Variable | Description |
 |----------|-------------|
-| `DATABASE_URL` | `postgresql+asyncpg://...` (use Railway's `${{Postgres.DATABASE_URL}}` with driver prefix swapped) |
-| `DATABASE_SYNC_URL` | `postgresql+psycopg2://...` (same host, psycopg2 prefix for Alembic) |
+| `DATABASE_URL` | `postgresql+asyncpg://...` — use Railway's `${{Postgres.DATABASE_URL}}` with driver prefix swapped to `asyncpg` |
+| `DATABASE_SYNC_URL` | `postgresql+psycopg2://...` — same host, `psycopg2` prefix (Alembic only) |
 | `JWT_SECRET_KEY` | Shared secret — **Omar sets this; all devs must use the same value** |
-| `STORAGE_BACKEND` | `local` or `s3` |
+| `STORAGE_BACKEND` | `s3` |
+| `AWS_S3_BUCKET_NAME` | From Railway Bucket → Connect tab |
+| `AWS_ENDPOINT_URL` | From Railway Bucket → Connect tab (e.g. `https://t3.storageapi.dev`) |
+| `AWS_ACCESS_KEY_ID` | From Railway Bucket → Connect tab |
+| `AWS_SECRET_ACCESS_KEY` | From Railway Bucket → Connect tab |
+| `AWS_REGION` | `auto` (Railway Buckets default) |
 | `SMTP_USER` | Email sender credentials |
 | `SMTP_PASSWORD` | Email sender password |
 | `FCM_SERVER_KEY` | Firebase Cloud Messaging key (push notifications) |
 | `SCHEDULER_TIMEZONE` | IANA timezone e.g. `Europe/London` |
+
+> **Local dev:** copy the same `AWS_*` and `DATABASE_*` values into your local `.env` — all 3 devs share the same Railway Postgres and Bucket, so the integration state is always consistent.
 
 The Docker CMD runs `alembic upgrade head` automatically on every deploy before starting Uvicorn.
 
@@ -288,9 +296,12 @@ feat/fr13-audit         ← Sunny
 See [`.env.example`](.env.example) for the full annotated list.
 
 Critical variables:
-- `DATABASE_URL` — async PostgreSQL connection string (asyncpg driver)
+- `DATABASE_URL` — async PostgreSQL connection string (asyncpg driver) — from Railway Postgres service
 - `DATABASE_SYNC_URL` — sync PostgreSQL connection string (psycopg2, used by Alembic only)
 - `JWT_SECRET_KEY` — **shared across all 3 devs; Omar sets the canonical value in Railway**
+- `STORAGE_BACKEND` — `s3` for Railway Bucket (all environments), `local` only for offline dev
+- `AWS_S3_BUCKET_NAME` / `AWS_ENDPOINT_URL` / `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` — from Railway Bucket → Connect tab; copy into local `.env` for consistent dev state
+- `AWS_REGION` — `auto` for Railway Buckets
 - `SCHEDULER_TIMEZONE` — IANA timezone (e.g. `Europe/London`)
 - `CERT_EXPIRY_WARNING_DAYS` — days before cert expiry for warning alert (default: 30)
 - `CERT_EXPIRY_CRITICAL_DAYS` — days before cert expiry for critical alert (default: 7)

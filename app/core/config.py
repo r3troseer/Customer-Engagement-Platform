@@ -32,10 +32,11 @@ class Settings(BaseSettings):
     # File storage
     STORAGE_BACKEND: str = "local"
     LOCAL_UPLOAD_DIR: str = "./uploads"
-    AWS_BUCKET_NAME: str = ""
+    AWS_S3_BUCKET_NAME: str = ""
+    AWS_ENDPOINT_URL: str = ""         # Railway Bucket endpoint (leave blank for AWS S3)
     AWS_ACCESS_KEY_ID: str = ""
     AWS_SECRET_ACCESS_KEY: str = ""
-    AWS_REGION: str = "eu-west-2"
+    AWS_REGION: str = "auto"
 
     # Email
     SMTP_HOST: str = "smtp.gmail.com"
