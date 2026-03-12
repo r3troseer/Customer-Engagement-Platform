@@ -6,6 +6,5 @@ __pycache__
 .git
 .gitignore
 uploads/
-alembic/versions/
 *.md
 .pytest_cache
