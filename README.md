@@ -55,7 +55,7 @@ Key capabilities:
 | Database | PostgreSQL (via asyncpg async driver) |
 | ORM | SQLAlchemy 2.x (async, `Mapped[T]` style) |
 | Migrations | Alembic |
-| Auth | JWT (python-jose) — issued by Omar's FR1 router |
+| Auth | JWT (PyJWT) — issued by Omar's FR1 router |
 | Scheduling | APScheduler 3.x (AsyncIOScheduler) |
 | PDF export | reportlab |
 | CSV/Excel export | openpyxl |

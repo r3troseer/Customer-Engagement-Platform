@@ -7,7 +7,7 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError
+from jwt.exceptions import InvalidTokenError
 
 from app.core.security import decode_access_token, extract_roles, extract_user_id
 
@@ -33,7 +33,7 @@ async def get_current_user(
         payload = decode_access_token(credentials.credentials)
         user_id = extract_user_id(payload)
         roles = extract_roles(payload)
-    except (JWTError, ValueError):
+    except (InvalidTokenError, ValueError):
         raise credentials_exception
 
     return {"user_id": user_id, "roles": roles}

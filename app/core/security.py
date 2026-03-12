@@ -3,7 +3,8 @@ JWT decode utilities.
 Token *issuance* is owned by Omar (FR1 / auth router).
 This module is used by the dependency layer to validate incoming tokens.
 """
-from jose import JWTError, jwt
+import jwt
+from jwt.exceptions import InvalidTokenError
 
 from app.core.config import settings
 
@@ -12,7 +13,7 @@ def decode_access_token(token: str) -> dict:
     """
     Decode and verify a JWT access token.
     Returns the payload dict on success.
-    Raises JWTError on invalid / expired tokens.
+    Raises InvalidTokenError on invalid / expired tokens.
     """
     return jwt.decode(
         token,
@@ -25,7 +26,7 @@ def extract_user_id(payload: dict) -> int:
     """Pull user_id (stored as 'sub') from a decoded JWT payload."""
     sub = payload.get("sub")
     if sub is None:
-        raise JWTError("Missing 'sub' claim in token")
+        raise InvalidTokenError("Missing 'sub' claim in token")
     return int(sub)
 
 
