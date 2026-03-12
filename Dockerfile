@@ -36,5 +36,4 @@ EXPOSE 8000
 
 # Run Alembic migrations then start Uvicorn.
 # In Railway: set DATABASE_URL and JWT_SECRET_KEY as env vars in the dashboard.
-CMD alembic upgrade head && \
-    uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1
+CMD ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1"]
