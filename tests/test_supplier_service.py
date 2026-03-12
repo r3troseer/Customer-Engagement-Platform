@@ -146,6 +146,7 @@ class TestReviewDocument:
         with (
             patch("app.services.supplier_service.get_supplier", new=AsyncMock(return_value=supplier)),
             patch("app.services.supplier_service._get_document", new=AsyncMock(return_value=doc)),
+            patch("app.services.supplier_service.list_documents", new=AsyncMock(return_value=[doc])),
         ):
             result = await review_document(
                 mock_db, supplier_id=1, doc_id=1,
@@ -165,6 +166,7 @@ class TestReviewDocument:
         with (
             patch("app.services.supplier_service.get_supplier", new=AsyncMock(return_value=supplier)),
             patch("app.services.supplier_service._get_document", new=AsyncMock(return_value=doc)),
+            patch("app.services.supplier_service.list_documents", new=AsyncMock(return_value=[doc])),
         ):
             result = await review_document(
                 mock_db, supplier_id=1, doc_id=1,
