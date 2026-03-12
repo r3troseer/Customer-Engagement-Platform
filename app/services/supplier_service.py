@@ -256,18 +256,13 @@ async def review_document(
     await db.commit()
     await db.refresh(doc)
 
-    # Recompute supplier-level compliance + ESG score
-    supplier = await get_supplier(db, supplier_id)
+    # Recompute ESG score if all documents are now approved
     all_docs = await list_documents(db, supplier_id)
-
-    new_status = _aggregate_compliance_status(all_docs)
-    supplier.status = new_status if new_status in ("active", "inactive", "suspended") else supplier.status
-
     new_esg = _recalculate_esg_score(all_docs)
     if new_esg is not None:
+        supplier = await get_supplier(db, supplier_id)
         supplier.esg_score = new_esg
-
-    await db.commit()
+        await db.commit()
 
     # TODO: notify — notification_service.notify_document_reviewed(doc.id, action)
     # TODO: audit — audit_service.log_action(f"supplier.document.{action}", doc_id, reviewer_id)
@@ -306,6 +301,13 @@ async def update_compliance_status(
     This is append-only in intent — no history table, but the Supplier row
     updated_at timestamp serves as the last-changed marker.
     """
+    _VALID_SUPPLIER_STATUSES = {"active", "inactive", "suspended"}
+    if new_status not in _VALID_SUPPLIER_STATUSES:
+        from app.core.exceptions import UnprocessableError
+        raise UnprocessableError(
+            f"Invalid status '{new_status}'. Must be one of: {sorted(_VALID_SUPPLIER_STATUSES)}"
+        )
+
     supplier = await get_supplier(db, supplier_id)
 
     supplier.status = new_status
