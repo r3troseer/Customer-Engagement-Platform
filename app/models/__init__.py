@@ -4,10 +4,11 @@ via Base.metadata. Do not remove any import — even if the router for that
 module hasn't been wired yet.
 
 Ownership:
-  Pius   — suppliers, workforce, reporting, notifications (incl. audit_logs)
+  Pius   — suppliers, workforce, reporting, notifications
   Omar   — auth, customers, tokens, blockchain
-  Sunny  — org, compliance, esg, donations
+  Sunny  — org, compliance, esg, donations, audit
 """
+
 from app.models.base import Base, TimestampMixin  # noqa: F401
 
 # Enums — must be imported first so PG ENUM types are registered
@@ -26,15 +27,28 @@ from app.models.auth import (  # noqa: F401
 )
 
 # Org (Sunny — FR2)
-from app.models.org import Employee, Location, Organization  # noqa: F401
+from app.models.org import (  # noqa: F401
+    Department,
+    Employee,
+    EmployeeLocationAssignment,
+    LocationSetting,
+    Organization,
+    RestaurantLocation,
+)
 
 # Compliance (Sunny — FR3)
 from app.models.compliance import (  # noqa: F401
     ComplianceAlert,
+    ComplianceDocument,
+    ComplianceDocumentVersion,
     ComplianceEvidence,
     ComplianceFramework,
-    ComplianceRecord,
     ComplianceRequirement,
+    ComplianceReview,
+    ComplianceScore,
+    ComplianceStatusHistory,
+    LocationCompliance,
+    OrganizationCompliance,
 )
 
 # ESG (Sunny — FR4)
@@ -46,7 +60,11 @@ from app.models.esg import (  # noqa: F401
 )
 
 # Suppliers (Pius — FR5)
-from app.models.suppliers import Supplier, SupplierDocument, SupplierLocation  # noqa: F401
+from app.models.suppliers import (  # noqa: F401
+    Supplier,
+    SupplierDocument,
+    SupplierLocation,
+)
 
 # Workforce (Pius — FR6)
 from app.models.workforce import (  # noqa: F401
@@ -76,7 +94,13 @@ from app.models.tokens import (  # noqa: F401
 )
 
 # Donations (Sunny — FR9)
-from app.models.donations import Donation, DonationCause, DonationImpact  # noqa: F401
+from app.models.donations import (  # noqa: F401
+    Donation,
+    DonationAttribution,
+    DonationCause,
+    DonationConversion,
+    DonationImpact,
+)
 
 # Blockchain (Omar — FR10)
 from app.models.blockchain import (  # noqa: F401
@@ -94,41 +118,113 @@ from app.models.reporting import (  # noqa: F401
     ReportTemplate,
 )
 
-# Notifications + AuditLog (Pius FR12 / Sunny FR13)
+# Notifications (Pius — FR12)
 from app.models.notifications import (  # noqa: F401
-    AuditLog,
     Notification,
     NotificationLog,
     NotificationPreference,
 )
 
+# Audit / Governance (Sunny — FR13)
+from app.models.audit import (  # noqa: F401
+    Approval,
+    AuditLog,
+    ChangeHistory,
+)
+
 __all__ = [
     "Base",
     "TimestampMixin",
+
     # Auth
-    "User", "Role", "UserRole", "Permission", "RolePermission",
-    "UserLocationAccess", "LoginSession", "SecurityLog",
+    "User",
+    "Role",
+    "UserRole",
+    "Permission",
+    "RolePermission",
+    "UserLocationAccess",
+    "LoginSession",
+    "SecurityLog",
+
     # Org
-    "Organization", "Location", "Employee",
+    "Organization",
+    "RestaurantLocation",
+    "LocationSetting",
+    "Department",
+    "Employee",
+    "EmployeeLocationAssignment",
+
     # Compliance
-    "ComplianceFramework", "ComplianceRequirement", "ComplianceRecord",
-    "ComplianceEvidence", "ComplianceAlert",
+    "ComplianceFramework",
+    "ComplianceRequirement",
+    "OrganizationCompliance",
+    "LocationCompliance",
+    "ComplianceEvidence",
+    "ComplianceReview",
+    "ComplianceDocument",
+    "ComplianceDocumentVersion",
+    "ComplianceStatusHistory",
+    "ComplianceAlert",
+    "ComplianceScore",
+
     # ESG
-    "EsgObjective", "EsgMetricValue", "EsgActivity", "EsgReport",
+    "EsgObjective",
+    "EsgMetricValue",
+    "EsgActivity",
+    "EsgReport",
+
     # Suppliers
-    "Supplier", "SupplierLocation", "SupplierDocument",
+    "Supplier",
+    "SupplierLocation",
+    "SupplierDocument",
+
     # Workforce
-    "WorkLog", "LeaderboardSnapshot", "LeaderboardEntry", "Redemption",
+    "WorkLog",
+    "LeaderboardSnapshot",
+    "LeaderboardEntry",
+    "Redemption",
+
     # Customers
-    "Customer", "CustomerVisit", "MobilityLog", "Challenge", "ChallengeParticipation",
+    "Customer",
+    "CustomerVisit",
+    "MobilityLog",
+    "Challenge",
+    "ChallengeParticipation",
+
     # Tokens
-    "Wallet", "WalletTransaction", "TokenRule", "RewardRule", "RewardsCatalog", "RewardVoucher",
+    "Wallet",
+    "WalletTransaction",
+    "TokenRule",
+    "RewardRule",
+    "RewardsCatalog",
+    "RewardVoucher",
+
     # Donations
-    "DonationCause", "Donation", "DonationImpact",
+    "DonationCause",
+    "Donation",
+    "DonationConversion",
+    "DonationImpact",
+    "DonationAttribution",
+
     # Blockchain
-    "BlockchainTransaction", "BlockchainRecord", "BlockchainHash",
+    "BlockchainTransaction",
+    "BlockchainRecord",
+    "BlockchainHash",
+
     # Reporting
-    "ReportTemplate", "ReportRun", "ReportExport", "DashboardKpi", "AnalyticsSnapshot",
-    # Notifications + Audit
-    "Notification", "NotificationPreference", "NotificationLog", "AuditLog",
+    "ReportTemplate",
+    "ReportRun",
+    "ReportExport",
+    "DashboardKpi",
+    "AnalyticsSnapshot",
+
+    # Notifications
+    "Notification",
+    "NotificationPreference",
+    "NotificationLog",
+
+    # Audit / Governance
+    "AuditLog",
+    "ChangeHistory",
+    "Approval",
 ]
