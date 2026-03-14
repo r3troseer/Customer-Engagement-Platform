@@ -250,8 +250,7 @@ async def create_redemption(
         status="completed",
     )
     db.add(redemption)
-    await db.commit()
-    await db.refresh(redemption)
+    await db.flush()  # get redemption.id; commit happens after wallet debit
 
     wallet = await get_wallet_by_user(db, current_user["user_id"])
     if wallet:
@@ -264,6 +263,7 @@ async def create_redemption(
         )
     # TODO: notify — notification_service.notify_redemption(employee.id, reward.title)
     await AuditLogService.create(db, {"action": "redemption.created", "entity_type": "redemptions", "entity_id": redemption.id, "user_id": current_user["user_id"]})
+    await db.refresh(redemption)
 
     # Attach voucher_code for the response schema (not a column on Redemption)
     redemption.voucher_code = voucher_code  # type: ignore[attr-defined]

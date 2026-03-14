@@ -3,10 +3,12 @@ FR6 — Workforce Engagement & Incentive
 Endpoints for work logs, sustainability activity, wallet, leaderboard, rewards.
 """
 from fastapi import APIRouter
+from sqlalchemy import select
 
 from app.dependencies.auth import AdminUser, CurrentUser
 from app.dependencies.db import DBSession
 from app.dependencies.pagination import Pagination
+from app.models.org import Employee
 from app.models.workforce import LeaderboardEntry, LeaderboardSnapshot
 from app.schemas.common import PaginatedResponse
 from app.schemas.workforce import (
@@ -42,9 +44,6 @@ def _entry_to_out(entry: LeaderboardEntry, employee_name: str = "") -> Leaderboa
 
 
 async def _snapshot_to_out(db: DBSession, snapshot: LeaderboardSnapshot) -> LeaderboardOut:
-    from sqlalchemy import select
-    from app.models.org import Employee
-
     employee_ids = [e.employee_id for e in snapshot.entries]
     name_map: dict[int, str] = {}
     if employee_ids:
