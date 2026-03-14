@@ -9,8 +9,11 @@ from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.org import Employee
 from app.models.tokens import TokenRule
 from app.models.workforce import LeaderboardEntry, LeaderboardSnapshot
+from app.services.audit_service import AuditLogService
+from app.services.token_service import credit_tokens, get_wallet_by_user
 
 
 # ── Pure helpers (no I/O) ─────────────────────────────────────────────────────
@@ -257,7 +260,7 @@ async def reset_leaderboard(
         status="open",
     )
     db.add(new_snapshot)
-    # TODO: audit — log "leaderboard.reset" with snapshot.id
+    await AuditLogService.create(db, {"action": "leaderboard.reset", "entity_type": "leaderboard_snapshots", "entity_id": snapshot.id, "user_id": None})
 
     return snapshot
 
@@ -294,6 +297,20 @@ async def award_monday_bonus(
     for entry in winners:
         entry.bonus_tokens = entry.bonus_tokens + bonus_rule.tokens_awarded
         entry.bonus_paid = True
-        # TODO: wallet_service.credit_tokens(entry.employee_id, bonus_rule.tokens_awarded, "leaderboard_bonus")
-        # TODO: notification_service.notify_leaderboard_rank(entry.employee_id, entry.rank_position)
-        # TODO: audit — log "tokens.bonus_awarded"
+
+        emp_result = await db.execute(
+            select(Employee.user_id).where(Employee.id == entry.employee_id)
+        )
+        user_id = emp_result.scalar_one_or_none()
+        if user_id is not None:
+            wallet = await get_wallet_by_user(db, user_id)
+            if wallet:
+                await credit_tokens(
+                    db, wallet.id, bonus_rule.tokens_awarded,
+                    tx_type="earn",
+                    description="Leaderboard bonus",
+                    reference_type="leaderboard_entries",
+                    reference_id=entry.id,
+                )
+        # TODO: notify — notification_service.notify_leaderboard_rank(entry.employee_id, entry.rank_position)
+        await AuditLogService.create(db, {"action": "tokens.bonus_awarded", "entity_type": "leaderboard_entries", "entity_id": entry.id, "user_id": user_id})
