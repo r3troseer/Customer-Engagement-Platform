@@ -338,9 +338,13 @@ async def get_dashboard_kpis(db: AsyncSession, org_id: int) -> DashboardOut:
 
     period_end = today
 
+    kpi_counter = 0
+
     def _kpi(code, name, value, unit) -> DashboardKpiOut:
+        nonlocal kpi_counter
+        kpi_counter += 1
         return DashboardKpiOut(
-            id=None,
+            id=kpi_counter,
             kpi_code=code,
             kpi_name=name,
             kpi_value=Decimal(str(value)),
