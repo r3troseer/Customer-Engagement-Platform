@@ -1,15 +1,17 @@
 """
 Auth dependency layer.
 get_current_user decodes JWTs issued by Omar's auth router (FR1).
-Once Omar's User model is available, swap the stub return for a real DB lookup.
 """
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt.exceptions import InvalidTokenError
+from sqlalchemy import select
 
+from app.core.database import AsyncSessionLocal
 from app.core.security import decode_access_token, extract_roles, extract_user_id
+from app.models.auth import User
 
 bearer_scheme = HTTPBearer()
 
@@ -18,11 +20,10 @@ async def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials, Depends(bearer_scheme)],
 ) -> dict:
     """
-    Decode the Bearer JWT and return a minimal user context dict.
-    Shape: {"user_id": int, "roles": list[str]}
-
-    TODO (Omar): Once app.models.auth.User is ready, load the full User row
-    from the DB here and return it instead of the plain dict.
+    Decode the Bearer JWT, load the full User row from the DB, and return
+    an enriched user context dict.
+    Shape: {"user_id": int, "roles": list[str], "email": str,
+            "first_name": str, "last_name": str, "status": str}
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -36,7 +37,21 @@ async def get_current_user(
     except (InvalidTokenError, ValueError):
         raise credentials_exception
 
-    return {"user_id": user_id, "roles": roles}
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(select(User).where(User.id == user_id))
+        user = result.scalar_one_or_none()
+
+    if user is None or user.status != "active":
+        raise credentials_exception
+
+    return {
+        "user_id": user.id,
+        "roles": roles,
+        "email": user.email,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "status": user.status,
+    }
 
 
 def require_role(*allowed_roles: str):
