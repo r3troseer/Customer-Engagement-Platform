@@ -9,6 +9,7 @@ from sqlalchemy import func, select
 
 from app.core.exceptions import ConflictError, NotFoundError
 from app.models.suppliers import Supplier, SupplierDocument, SupplierLocation
+from app.services.audit_service import AuditLogService
 from app.schemas.suppliers import (
     ComplianceHistoryEntry,
     ComplianceStatusOut,
@@ -135,7 +136,7 @@ async def create_supplier(db, data: SupplierCreate, current_user: dict) -> Suppl
     db.add(supplier)
     await db.commit()
     await db.refresh(supplier)
-    # TODO: audit — audit_service.log_action("supplier.created", supplier.id, current_user)
+    await AuditLogService.create(db, {"action": "supplier.created", "entity_type": "suppliers", "entity_id": supplier.id, "user_id": current_user["user_id"]})
     return supplier
 
 
@@ -148,7 +149,7 @@ async def update_supplier(db, supplier_id: int, data: SupplierUpdate, current_us
 
     await db.commit()
     await db.refresh(supplier)
-    # TODO: audit — audit_service.log_action("supplier.updated", supplier.id, current_user)
+    await AuditLogService.create(db, {"action": "supplier.updated", "entity_type": "suppliers", "entity_id": supplier.id, "user_id": current_user["user_id"]})
     return supplier
 
 
@@ -157,7 +158,7 @@ async def delete_supplier(db, supplier_id: int, current_user: dict) -> None:
     supplier = await get_supplier(db, supplier_id)
     supplier.status = "inactive"
     await db.commit()
-    # TODO: audit — audit_service.log_action("supplier.deleted", supplier.id, current_user)
+    await AuditLogService.create(db, {"action": "supplier.deleted", "entity_type": "suppliers", "entity_id": supplier.id, "user_id": current_user["user_id"]})
 
 
 async def get_public_suppliers(db, pagination) -> tuple[list[Supplier], int]:
@@ -212,7 +213,7 @@ async def upload_document(
     await db.commit()
     await db.refresh(doc)
     # TODO: notify — notification_service.notify_document_uploaded(supplier_id, doc.id)
-    # TODO: audit — audit_service.log_action("supplier.document.uploaded", doc.id, uploader_id)
+    await AuditLogService.create(db, {"action": "supplier.document.uploaded", "entity_type": "supplier_documents", "entity_id": doc.id, "user_id": uploader_id})
     return doc
 
 
@@ -230,7 +231,7 @@ async def delete_document(db, supplier_id: int, doc_id: int, current_user: dict)
     doc = await _get_document(db, supplier_id, doc_id)
     db.delete(doc)
     await db.commit()
-    # TODO: audit — audit_service.log_action("supplier.document.deleted", doc_id, current_user)
+    await AuditLogService.create(db, {"action": "supplier.document.deleted", "entity_type": "supplier_documents", "entity_id": doc_id, "user_id": current_user["user_id"]})
 
 
 async def review_document(
@@ -265,7 +266,7 @@ async def review_document(
         await db.commit()
 
     # TODO: notify — notification_service.notify_document_reviewed(doc.id, action)
-    # TODO: audit — audit_service.log_action(f"supplier.document.{action}", doc_id, reviewer_id)
+    await AuditLogService.create(db, {"action": f"supplier.document.{action}", "entity_type": "supplier_documents", "entity_id": doc_id, "user_id": reviewer_id})
     return doc
 
 
@@ -317,7 +318,7 @@ async def update_compliance_status(
     await db.commit()
     await db.refresh(supplier)
 
-    # TODO: audit — audit_service.log_action("supplier.compliance.updated", supplier_id, reviewer_id, notes)
+    await AuditLogService.create(db, {"action": "supplier.compliance.updated", "entity_type": "suppliers", "entity_id": supplier_id, "user_id": reviewer_id})
     return ComplianceStatusOut(
         supplier_id=supplier.id,
         supplier_name=supplier.supplier_name,

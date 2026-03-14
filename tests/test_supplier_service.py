@@ -118,7 +118,7 @@ class TestDeleteSupplier:
             await delete_supplier(mock_db, supplier_id=1, current_user=current_user)
 
         assert supplier.status == "inactive"
-        mock_db.commit.assert_awaited_once()
+        mock_db.commit.assert_awaited()  # at least once (audit_service adds a second commit)
 
     async def test_soft_delete_does_not_call_db_delete(self, mock_db):
         from app.services.supplier_service import delete_supplier
