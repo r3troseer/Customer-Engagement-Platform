@@ -103,12 +103,12 @@ class LeaderboardOut(BaseModel):
 
 class RewardOut(BaseModel):
     id: int
-    reward_name: str
+    title: str
     description: str | None
     token_cost: Decimal
     reward_type: str
     applicable_to: str
-    is_active: bool
+    status: str
 
     model_config = {"from_attributes": True}
 
