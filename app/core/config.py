@@ -29,6 +29,10 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
+    # Polygon blockchain (Omar — FR10)
+    POLYGON_RPC_URL: str = ""
+    POLYGON_WALLET_PRIVATE_KEY: str = ""
+
     # File storage
     STORAGE_BACKEND: str = "local"
     LOCAL_UPLOAD_DIR: str = "./uploads"

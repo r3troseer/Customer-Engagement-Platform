@@ -10,8 +10,8 @@ from app.tasks.scheduler import start_scheduler, stop_scheduler
 # ── Pius's routers (FR5, FR6, FR11, FR12) ────────────────────────────────────
 from app.routers import notifications, reporting, suppliers, workforce
 
-# ── Omar's routers — uncomment when his branches are merged (FR1, FR7, FR8, FR10)
-# from app.routers import auth, customers, tokens, blockchain
+# ── Omar's routers ──────────────────────────────────────────────────────────────
+from app.routers import auth, customers, tokens, blockchain
 
 # ── Sunny's routers ───────────────────────────────────────────────────────────
 from app.routers.audit import router as audit_router
@@ -88,12 +88,11 @@ app.include_router(esg_router, prefix=PREFIX)
 app.include_router(donations_router, prefix=PREFIX)
 app.include_router(audit_router, prefix=PREFIX)
 
-# ── Omar routers — uncomment when merged ──────────────────────────────────────
-# app.include_router(auth.router, prefix=f"{PREFIX}/auth", tags=["FR1 – Auth"])
-# app.include_router(customers.router, prefix=f"{PREFIX}/customers", tags=["FR7 – Customers"])
-# app.include_router(tokens.router, prefix=f"{PREFIX}/tokens", tags=["FR8 – Tokens"])
-# app.include_router(blockchain.router, prefix=f"{PREFIX}/blockchain", tags=["FR10 – Blockchain"])
-
+# ── Omar routers ──────────────────────────────────────────────────────────────
+app.include_router(auth.router, prefix=f"{PREFIX}/auth", tags=["FR1 – Auth"])
+app.include_router(customers.router, prefix=f"{PREFIX}/customers", tags=["FR7 – Customers"])
+app.include_router(tokens.router, prefix=f"{PREFIX}/tokens", tags=["FR8 – Tokens"])
+app.include_router(blockchain.router, prefix=f"{PREFIX}/blockchain", tags=["FR10 – Blockchain"])
 
 @app.get("/health", tags=["Health"])
 async def health_check():
