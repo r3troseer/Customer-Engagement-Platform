@@ -21,18 +21,19 @@ from app.schemas.workforce import (
     WorkLogOut,
 )
 from app.services import leaderboard_service, workforce_service
+from app.services.auth_service import get_user_by_id
 
 router = APIRouter()
 
 
 # ── Mapping helpers ───────────────────────────────────────────────────────────
 
-def _entry_to_out(entry: LeaderboardEntry) -> LeaderboardEntryOut:
+def _entry_to_out(entry: LeaderboardEntry, employee_name: str = "") -> LeaderboardEntryOut:
     return LeaderboardEntryOut(
         id=entry.id,
         rank_position=entry.rank_position,
         employee_id=entry.employee_id,
-        employee_name="",  # TODO: join Employee→User name when Omar's User model merges
+        employee_name=employee_name,
         score=entry.score,
         total_tokens=entry.total_tokens,
         bonus_tokens=entry.bonus_tokens,
@@ -40,7 +41,21 @@ def _entry_to_out(entry: LeaderboardEntry) -> LeaderboardEntryOut:
     )
 
 
-def _snapshot_to_out(snapshot: LeaderboardSnapshot) -> LeaderboardOut:
+async def _snapshot_to_out(db: DBSession, snapshot: LeaderboardSnapshot) -> LeaderboardOut:
+    from sqlalchemy import select
+    from app.models.org import Employee
+
+    employee_ids = [e.employee_id for e in snapshot.entries]
+    name_map: dict[int, str] = {}
+    if employee_ids:
+        result = await db.execute(
+            select(Employee.id, Employee.user_id).where(Employee.id.in_(employee_ids))
+        )
+        for emp_id, user_id in result.all():
+            user = await get_user_by_id(db, user_id)
+            if user:
+                name_map[emp_id] = f"{user.first_name} {user.last_name}"
+
     return LeaderboardOut(
         snapshot_id=snapshot.id,
         organization_id=snapshot.organization_id,
@@ -48,7 +63,7 @@ def _snapshot_to_out(snapshot: LeaderboardSnapshot) -> LeaderboardOut:
         period_start=snapshot.period_start,
         period_end=snapshot.period_end,
         status=snapshot.status,
-        entries=[_entry_to_out(e) for e in snapshot.entries],
+        entries=[_entry_to_out(e, name_map.get(e.employee_id, "")) for e in snapshot.entries],
     )
 
 
@@ -73,8 +88,8 @@ async def my_work_logs(db: DBSession, current_user: CurrentUser, pagination: Pag
 
 @router.get("/work-logs/admin", response_model=PaginatedResponse[WorkLogOut], summary="FR-6.1 All org work logs (admin)")
 async def all_work_logs(db: DBSession, current_user: AdminUser, pagination: Pagination):
-    org_id = current_user.get("org_id")  # TODO: resolve org_id from user when Sunny's org model merges
-    logs, total = await workforce_service.get_all_work_logs(db, org_id, pagination.offset, pagination.page_size)
+    employee = await workforce_service._get_employee(db, current_user["user_id"])
+    logs, total = await workforce_service.get_all_work_logs(db, employee.organization_id, pagination.offset, pagination.page_size)
     return PaginatedResponse.create(
         items=[WorkLogOut.model_validate(l) for l in logs],
         total=total,
@@ -108,7 +123,7 @@ async def current_leaderboard(db: DBSession, current_user: CurrentUser):
         snapshot = await leaderboard_service.get_or_create_open_snapshot(db, employee.organization_id)
         await db.commit()
         snapshot.entries = []
-    return _snapshot_to_out(snapshot)
+    return await _snapshot_to_out(db, snapshot)
 
 
 @router.get("/leaderboard/history", response_model=PaginatedResponse[LeaderboardOut], summary="FR-6.5 Historical leaderboard snapshots")
@@ -118,7 +133,7 @@ async def leaderboard_history(db: DBSession, current_user: AdminUser, pagination
         db, employee.organization_id, pagination.offset, pagination.page_size
     )
     return PaginatedResponse.create(
-        items=[_snapshot_to_out(s) for s in snapshots],
+        items=[await _snapshot_to_out(db, s) for s in snapshots],
         total=total,
         page=pagination.page,
         page_size=pagination.page_size,
