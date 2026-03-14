@@ -66,7 +66,7 @@ async def list_audit_logs(
     "/logs/{audit_log_id}",
     response_model=AuditLogOut,
 )
-async def get_audit_log(audit_log_id: int, db: DBSession) -> AuditLogOut:
+async def get_audit_log(audit_log_id: int, db: DBSession) -> AuditLogOut: # pyright: ignore[reportInvalidTypeForm]
     return await AuditLogService.get_by_id(db, audit_log_id)
 
 

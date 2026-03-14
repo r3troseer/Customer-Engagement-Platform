@@ -86,7 +86,7 @@ uv sync
 
 # 3. Configure environment
 cp .env.example .env
-# Edit .env — set DATABASE_URL, DATABASE_SYNC_URL, JWT_SECRET_KEY
+# Edit .env — set DATABASE_URL, DATABASE_SYNC_URL, JWT_SECRET_KEY, POLYGON_WALLET_PRIVATE_KEY 
 
 # 4. Run database migrations
 uv run alembic upgrade head
@@ -214,6 +214,19 @@ uv run alembic downgrade -1
 
 All endpoints prefixed with `/api/v1`. Interactive docs at `/docs` (Swagger UI).
 
+### FR1 – User Roles & Access Control
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/auth/register` | none | Register a new user |
+| POST | `/auth/login` | none | Login and get JWT |
+| GET | `/auth/me` | any | Get current user profile |
+| PATCH | `/auth/me` | any | Update current user profile |
+| GET | `/auth/users` | admin | List users (paginated) |
+| GET | `/auth/users/{user_id}` | admin | Get user by ID |
+| POST | `/auth/change-password` | any | Change password |
+| GET | `/auth/roles` | admin | List all roles |
+| GET | `/auth/security-logs` | admin | Security audit logs |
+
 ### FR5 – Supplier Transparency
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
@@ -233,6 +246,46 @@ All endpoints prefixed with `/api/v1`. Interactive docs at `/docs` (Swagger UI).
 | GET | `/workforce/wallet` | employee | Token wallet balance |
 | POST | `/workforce/redemptions` | employee | Redeem tokens for voucher |
 | GET | `/workforce/redemptions` | employee | My redemption history |
+
+### FR7 – Customer Engagement & Rewards
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/customers/` | admin | Create customer profile |
+| GET | `/customers/` | admin | List customers (paginated) |
+| GET | `/customers/me` | any | Get my customer profile |
+| GET | `/customers/{customer_id}` | any | Get customer by ID |
+| PATCH | `/customers/{customer_id}` | any | Update customer profile |
+| POST | `/customers/visits` | any | Record a dining visit |
+| GET | `/customers/{customer_id}/visits` | any | List customer visits |
+| POST | `/customers/mobility` | any | Log steps/mobility |
+| GET | `/customers/{customer_id}/mobility` | any | List mobility logs |
+| POST | `/customers/challenges` | admin | Create challenge |
+| GET | `/customers/challenges` | any | List challenges |
+| GET | `/customers/challenges/{challenge_id}` | any | Get challenge |
+| POST | `/customers/challenges/join` | any | Join a challenge |
+| GET | `/customers/{customer_id}/impact` | any | Customer sustainability impact |
+
+### FR8 – Token Economy & Reward System
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/tokens/wallets` | admin | Create wallet |
+| GET | `/tokens/wallets/me` | any | Get my wallet |
+| GET | `/tokens/wallets/{wallet_id}/transactions` | any | List wallet transactions |
+| POST | `/tokens/rules` | admin | Create token rule |
+| GET | `/tokens/rules` | admin | List token rules |
+| POST | `/tokens/catalog` | admin | Add reward to catalog |
+| GET | `/tokens/catalog` | any | Browse rewards catalog |
+| GET | `/tokens/catalog/{item_id}` | any | Get catalog item |
+| POST | `/tokens/redeem` | any | Redeem tokens for reward |
+
+### FR10 – Blockchain Verification & Transparency
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/blockchain/records` | admin | Create blockchain record |
+| GET | `/blockchain/records` | admin | List blockchain records |
+| GET | `/blockchain/records/{record_id}` | any | Get blockchain record |
+| POST | `/blockchain/anchor` | admin | Anchor record hash on Polygon |
+| GET | `/blockchain/verify/{reference_code}` | none | Public verification (no auth) |
 
 ### FR11 – Reporting & Analytics
 | Method | Path | Auth | Description |
