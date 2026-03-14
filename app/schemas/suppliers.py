@@ -147,3 +147,26 @@ class ComplianceHistoryEntry(BaseModel):
     esg_score: Decimal | None
     changed_by: int | None
     notes: str | None
+
+
+# ── Supplier Locations ────────────────────────────────────────────────────────
+
+class SupplierLocationIn(BaseModel):
+    organization_id: int | None = None
+    location_id: int | None = None
+    service_type: str | None = None
+    relationship_type: str | None = None
+
+
+class SupplierLocationOut(BaseModel):
+    id: int
+    supplier_id: int
+    organization_id: int | None
+    location_id: int | None
+    service_type: str | None
+    relationship_type: str | None
+    status: str
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}

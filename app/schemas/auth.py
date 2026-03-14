@@ -90,6 +90,18 @@ class RoleAssign(BaseModel):
     role_id: int
 
 
+class RoleAssignByName(BaseModel):
+    role_name: str
+
+
+class UserRoleOut(BaseModel):
+    user_id: int
+    role_name: str
+    assigned_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
 # ── Sessions ──────────────────────────────────────────────────────────────────
 
 class SessionOut(BaseModel):

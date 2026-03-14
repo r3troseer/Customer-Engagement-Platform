@@ -115,6 +115,39 @@ async def create_login_session(
     return session
 
 
+async def assign_role(db: AsyncSession, user_id: int, role_name: str) -> UserRole:
+    """
+    Assign a named role to a user. Idempotent — returns the existing UserRole if the
+    assignment already exists. Raises 404 if the user or role_name does not exist.
+    """
+    from app.core.exceptions import NotFoundError
+
+    user_result = await db.execute(select(User).where(User.id == user_id))
+    if not user_result.scalar_one_or_none():
+        raise NotFoundError(f"User {user_id} not found")
+
+    role_result = await db.execute(select(Role).where(Role.role_name == role_name))
+    role = role_result.scalar_one_or_none()
+    if not role:
+        raise NotFoundError(f"Role '{role_name}' not found")
+
+    existing = await db.execute(
+        select(UserRole).where(UserRole.user_id == user_id, UserRole.role_id == role.id)
+    )
+    user_role = existing.scalar_one_or_none()
+    if user_role:
+        return user_role
+
+    user_role = UserRole(
+        user_id=user_id,
+        role_id=role.id,
+        assigned_at=datetime.now(timezone.utc),
+    )
+    db.add(user_role)
+    await db.flush()
+    return user_role
+
+
 async def log_security_event(
     db: AsyncSession, user_id: int | None, event_type: str,
     ip_address: str | None = None, description: str | None = None,

@@ -369,6 +369,45 @@ async def get_compliance_history(
     return entries, total
 
 
+async def add_supplier_location(
+    db,
+    supplier_id: int,
+    organization_id: int | None,
+    location_id: int | None,
+    service_type: str | None = None,
+    relationship_type: str | None = None,
+) -> SupplierLocation:
+    """
+    Link a supplier to an organisation/location. Idempotent — returns the existing row
+    if the (supplier_id, organization_id, location_id) combination already exists.
+    """
+    await get_supplier(db, supplier_id)  # raises 404 if not found
+
+    existing = await db.execute(
+        select(SupplierLocation).where(
+            SupplierLocation.supplier_id == supplier_id,
+            SupplierLocation.organization_id == organization_id,
+            SupplierLocation.location_id == location_id,
+        )
+    )
+    sl = existing.scalars().first()
+    if sl:
+        return sl
+
+    sl = SupplierLocation(
+        supplier_id=supplier_id,
+        organization_id=organization_id,
+        location_id=location_id,
+        service_type=service_type,
+        relationship_type=relationship_type,
+        status="active",
+    )
+    db.add(sl)
+    await db.flush()
+    await db.refresh(sl)
+    return sl
+
+
 async def get_expiring_certs(db, threshold_date: date) -> list[SupplierDocument]:
     """
     Return active, approved documents whose expiry_date is on or before threshold_date.

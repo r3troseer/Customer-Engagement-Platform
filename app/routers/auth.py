@@ -11,6 +11,7 @@ from app.dependencies.db import DBSession
 from app.dependencies.pagination import Pagination
 from app.schemas.auth import (
     PasswordChange,
+    RoleAssignByName,
     RoleOut,
     SecurityLogOut,
     SessionOut,
@@ -18,6 +19,7 @@ from app.schemas.auth import (
     UserLogin,
     UserOut,
     UserRegister,
+    UserRoleOut,
     UserUpdate,
 )
 from app.schemas.common import MessageResponse, PaginatedResponse
@@ -123,6 +125,20 @@ async def change_password(body: PasswordChange, db: DBSession, current_user: Cur
     user.password_hash = svc.hash_password(body.new_password)
     await db.flush()
     return MessageResponse(message="Password changed successfully")
+
+
+# ── FR-1.3: Role assignment ──────────────────────────────────────────────────
+
+@router.post(
+    "/users/{user_id}/roles",
+    response_model=UserRoleOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="FR-1.3 Assign a role to a user (admin)",
+)
+async def assign_role(user_id: int, body: RoleAssignByName, db: DBSession, current_user: AdminUser):
+    user_role = await svc.assign_role(db, user_id, body.role_name)
+    role_name = user_role.role.role_name  # type: ignore[union-attr]
+    return UserRoleOut(user_id=user_role.user_id, role_name=role_name, assigned_at=user_role.assigned_at)
 
 
 # ── FR-1.4: Roles ──────────��─────────────────────────────────────────────────

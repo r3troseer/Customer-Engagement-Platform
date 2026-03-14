@@ -17,6 +17,8 @@ from app.schemas.suppliers import (
     PublicSupplierOut,
     SupplierCreate,
     SupplierDocumentOut,
+    SupplierLocationIn,
+    SupplierLocationOut,
     SupplierOut,
     SupplierUpdate,
 )
@@ -156,6 +158,26 @@ async def compliance_history(supplier_id: int, db: DBSession, current_user: Admi
         page=pagination.page,
         page_size=pagination.page_size,
     )
+
+
+# ── FR-5.7: Supplier location linking ────────────────────────────────────────
+
+@router.post(
+    "/{supplier_id}/locations",
+    response_model=SupplierLocationOut,
+    status_code=201,
+    summary="FR-5.7 Link a supplier to an organisation/location",
+)
+async def add_supplier_location(supplier_id: int, body: SupplierLocationIn, db: DBSession, current_user: AdminUser):
+    sl = await svc.add_supplier_location(
+        db,
+        supplier_id=supplier_id,
+        organization_id=body.organization_id,
+        location_id=body.location_id,
+        service_type=body.service_type,
+        relationship_type=body.relationship_type,
+    )
+    return SupplierLocationOut.model_validate(sl)
 
 
 # ── FR-5.6: Public ESG view for customers ─────────────────────────────────────
