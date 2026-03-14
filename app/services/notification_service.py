@@ -302,6 +302,41 @@ async def notify_admins_cert_expiry(
         )
 
 
+async def notify_redemption(
+    db: AsyncSession,
+    employee_id: int,
+    reward_title: str,
+) -> None:
+    """FR-12.1: Notify employee that their reward redemption was successful."""
+    user_id = await _get_user_id_for_employee(db, employee_id)
+    if user_id is None:
+        return
+    await create_and_dispatch(
+        db,
+        recipient_id=user_id,
+        notification_type="token_reward",
+        title="Reward Redeemed",
+        body=f"You successfully redeemed '{reward_title}'.",
+    )
+
+
+async def notify_document_reviewed(
+    db: AsyncSession,
+    doc,  # SupplierDocument
+    action: str,
+) -> None:
+    """FR-12.1: Notify document uploader of review outcome (approved/rejected/flagged)."""
+    if doc.uploader_id is None:
+        return
+    await create_and_dispatch(
+        db,
+        recipient_id=doc.uploader_id,
+        notification_type="compliance",
+        title="Document Review Update",
+        body=f"Your document '{doc.title}' has been {action}.",
+    )
+
+
 async def notify_report_ready(
     db: AsyncSession,
     report_run,  # ReportRun

@@ -312,5 +312,6 @@ async def award_monday_bonus(
                     reference_type="leaderboard_entries",
                     reference_id=entry.id,
                 )
-        # TODO: notify — notification_service.notify_leaderboard_rank(entry.employee_id, entry.rank_position)
+        from app.services import notification_service
+        await notification_service.notify_leaderboard_rank(db, entry.employee_id, entry.rank_position)
         await AuditLogService.create(db, {"action": "tokens.bonus_awarded", "entity_type": "leaderboard_entries", "entity_id": entry.id, "user_id": user_id})

@@ -95,7 +95,8 @@ async def create_work_log(
                 reference_type="work_logs",
                 reference_id=log.id,
             )
-        # TODO: notify — notification_service.notify_token_awarded(employee.id, tokens)
+        from app.services import notification_service
+        await notification_service.notify_token_awarded(db, employee.id, tokens)
 
     await db.commit()
     await db.refresh(log)
@@ -261,7 +262,8 @@ async def create_redemption(
             reference_type="rewards_catalog",
             reference_id=reward.id,
         )
-    # TODO: notify — notification_service.notify_redemption(employee.id, reward.title)
+    from app.services import notification_service
+    await notification_service.notify_redemption(db, employee.id, reward.title)
     await AuditLogService.create(db, {"action": "redemption.created", "entity_type": "redemptions", "entity_id": redemption.id, "user_id": current_user["user_id"]})
     await db.refresh(redemption)
 

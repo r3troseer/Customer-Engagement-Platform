@@ -194,7 +194,7 @@ async def upload_document(
     """
     from app.utils.file_storage import save_upload
 
-    await get_supplier(db, supplier_id)  # 404 guard
+    supplier = await get_supplier(db, supplier_id)
 
     file_path = await save_upload(file, folder=f"suppliers/{supplier_id}")
 
@@ -212,7 +212,8 @@ async def upload_document(
     db.add(doc)
     await db.commit()
     await db.refresh(doc)
-    # TODO: notify — notification_service.notify_document_uploaded(supplier_id, doc.id)
+    from app.services import notification_service
+    await notification_service.notify_document_uploaded(db, uploader_id, supplier.name, doc.title)
     await AuditLogService.create(db, {"action": "supplier.document.uploaded", "entity_type": "supplier_documents", "entity_id": doc.id, "user_id": uploader_id})
     return doc
 
@@ -265,7 +266,8 @@ async def review_document(
         supplier.esg_score = new_esg
         await db.commit()
 
-    # TODO: notify — notification_service.notify_document_reviewed(doc.id, action)
+    from app.services import notification_service
+    await notification_service.notify_document_reviewed(db, doc, action)
     await AuditLogService.create(db, {"action": f"supplier.document.{action}", "entity_type": "supplier_documents", "entity_id": doc_id, "user_id": reviewer_id})
     return doc
 
