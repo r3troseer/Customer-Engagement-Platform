@@ -10,10 +10,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import NotFoundError, UnprocessableError
 from app.models.org import Employee
-from app.models.tokens import RewardsCatalog, RewardVoucher, Wallet, WalletTransaction
+from app.models.tokens import RewardsCatalog, RewardVoucher
 from app.models.workforce import Redemption, WorkLog
 from app.schemas.workforce import WalletOut, TransactionOut
 from app.services import leaderboard_service
+from app.services.audit_service import AuditLogService
+from app.services.token_service import credit_tokens, debit_tokens, get_transactions, get_wallet_by_user
 
 
 # ── Internal helpers ──────────────────────────────────────────────────────────
@@ -84,12 +86,20 @@ async def create_work_log(
             score_delta=score,
             token_delta=tokens,
         )
-        # TODO: wallet_service.credit_tokens(employee.id, tokens, "work_log", log.id)
-        # TODO: notification_service.notify_token_awarded(employee.id, tokens)
+        wallet = await get_wallet_by_user(db, current_user["user_id"])
+        if wallet:
+            await credit_tokens(
+                db, wallet.id, tokens,
+                tx_type="earn",
+                description=f"Work log — {data.work_date}",
+                reference_type="work_logs",
+                reference_id=log.id,
+            )
+        # TODO: notify — notification_service.notify_token_awarded(employee.id, tokens)
 
     await db.commit()
     await db.refresh(log)
-    # TODO: audit — log "work_log.created"
+    await AuditLogService.create(db, {"action": "work_log.created", "entity_type": "work_logs", "entity_id": log.id, "user_id": current_user["user_id"]})
     return log
 
 
@@ -146,24 +156,12 @@ async def get_all_work_logs(
 # ── Wallet ────────────────────────────────────────────────────────────────────
 
 async def get_wallet(db: AsyncSession, user_id: int) -> WalletOut:
-    """
-    FR-6.4: Read the employee's wallet balance and recent transactions.
-    Read-only — wallet writes go through Omar's wallet_service.
-    """
-    wallet_result = await db.execute(
-        select(Wallet).where(Wallet.user_id == user_id)
-    )
-    wallet = wallet_result.scalar_one_or_none()
+    """FR-6.4: Read the employee's wallet balance and recent transactions."""
+    wallet = await get_wallet_by_user(db, user_id)
     if wallet is None:
         raise NotFoundError("Wallet", user_id)
 
-    tx_result = await db.execute(
-        select(WalletTransaction)
-        .where(WalletTransaction.wallet_id == wallet.id)
-        .order_by(WalletTransaction.created_at.desc())
-        .limit(10)
-    )
-    transactions = list(tx_result.scalars().all())
+    transactions = await get_transactions(db, wallet.id, limit=10)
 
     return WalletOut(
         wallet_id=wallet.id,
@@ -229,8 +227,6 @@ async def create_redemption(
     if reward.applicable_to not in ("employee", "both"):
         raise UnprocessableError(f"Reward '{reward.title}' is not applicable to employees.")
 
-    # TODO: wallet_service.get_balance(employee.id) and raise InsufficientTokensError if needed
-
     voucher_code = "VCHR-" + uuid4().hex[:12].upper()
     now = datetime.now(timezone.utc)
 
@@ -257,9 +253,17 @@ async def create_redemption(
     await db.commit()
     await db.refresh(redemption)
 
-    # TODO: wallet_service.debit_tokens(employee.id, reward.token_cost, "redemption")
-    # TODO: notification_service.notify_redemption(employee.id, reward.title)
-    # TODO: audit — log "redemption.created"
+    wallet = await get_wallet_by_user(db, current_user["user_id"])
+    if wallet:
+        await debit_tokens(
+            db, wallet.id, reward.token_cost,
+            tx_type="redeem",
+            description=f"Redeemed: {reward.title}",
+            reference_type="rewards_catalog",
+            reference_id=reward.id,
+        )
+    # TODO: notify — notification_service.notify_redemption(employee.id, reward.title)
+    await AuditLogService.create(db, {"action": "redemption.created", "entity_type": "redemptions", "entity_id": redemption.id, "user_id": current_user["user_id"]})
 
     # Attach voucher_code for the response schema (not a column on Redemption)
     redemption.voucher_code = voucher_code  # type: ignore[attr-defined]
