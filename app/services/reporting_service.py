@@ -2,7 +2,6 @@
 FR11 — Reporting & Analytics service layer.
 Report data aggregation, template management, scheduled execution, and export.
 """
-import csv
 import io
 import json
 import logging
@@ -489,30 +488,6 @@ async def _run_aggregator(db: AsyncSession, report_type: str, org_id: int, param
     return out.model_dump(mode="json") if hasattr(out, "model_dump") else {}
 
 
-def _serialize_to_csv(data: dict) -> str:
-    """Best-effort flat CSV from a report dict."""
-    output = io.StringIO()
-    writer = csv.writer(output)
-
-    # Write top-level scalar fields as header/value row
-    scalars = {k: v for k, v in data.items() if not isinstance(v, (list, dict))}
-    if scalars:
-        writer.writerow(list(scalars.keys()))
-        writer.writerow(list(scalars.values()))
-        writer.writerow([])
-
-    # Write first list field as a table
-    for key, value in data.items():
-        if isinstance(value, list) and value and isinstance(value[0], dict):
-            writer.writerow([key])
-            writer.writerow(list(value[0].keys()))
-            for row in value:
-                writer.writerow(list(row.values()))
-            break
-
-    return output.getvalue()
-
-
 # ── Execute report run ────────────────────────────────────────────────────────
 
 async def execute_report_run(
@@ -597,21 +572,27 @@ async def trigger_export(
 
     export_format = body.export_format
     try:
+        from app.services import export_service
         data = await _run_aggregator(db, body.report_type, org_id, params)
 
         if export_format == "csv":
-            raw = _serialize_to_csv(data).encode()
+            raw = export_service.generate_csv(data, body.report_type)
             ext = "csv"
             content_type = "text/csv"
+        elif export_format == "xlsx":
+            raw = export_service.generate_xlsx(data, body.report_type)
+            ext = "xlsx"
+            content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        elif export_format == "pdf":
+            raw = export_service.generate_pdf(data, body.report_type)
+            ext = "pdf"
+            content_type = "application/pdf"
         else:
-            # pdf: not yet implemented — fall back to JSON
             raw = json.dumps(data, default=str).encode()
             ext = "json"
-            export_format = "json"
             content_type = "application/json"
 
-        import io as _io
-        file_obj = _io.BytesIO(raw)
+        file_obj = io.BytesIO(raw)
         file_obj.filename = f"{body.report_type}_export.{ext}"  # type: ignore[attr-defined]
         file_obj.content_type = content_type  # type: ignore[attr-defined]
 

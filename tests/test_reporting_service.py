@@ -1,5 +1,5 @@
 """
-FR11 — Unit tests for pure-logic helpers in reporting_service.
+FR11 — Unit tests for pure-logic helpers in reporting_service and export_service.
 No DB, no I/O — only deterministic helpers.
 """
 from datetime import date
@@ -12,6 +12,7 @@ from app.services.reporting_service import (
     _esg_overall_score,
     _week_start,
 )
+from app.services.export_service import generate_csv, generate_pdf
 
 
 # ── _week_start ────────────────────────────────────────────────────────────────
@@ -78,3 +79,71 @@ def test_esg_overall_score_skips_zero_target():
     pairs = [(Decimal("0"), Decimal("0")), (Decimal("50"), Decimal("100"))]
     result = _esg_overall_score(pairs)
     assert result == Decimal("50.00")
+
+
+# ── export_service: generate_pdf ──────────────────────────────────────────────
+
+def test_generate_pdf_returns_bytes():
+    data = {"organization_id": 1, "overall_score": "75.00", "objectives": []}
+    result = generate_pdf(data, "esg")
+    assert isinstance(result, bytes)
+    assert len(result) > 0
+    assert result[:4] == b"%PDF"
+
+
+def test_generate_pdf_with_list_field():
+    data = {
+        "organization_id": 1,
+        "objectives": [
+            {"name": "Carbon Reduction", "target": "100", "actual": "80", "unit": "tCO2", "status": "active"},
+        ],
+    }
+    result = generate_pdf(data, "esg")
+    assert result[:4] == b"%PDF"
+
+
+# ── export_service: generate_csv ─────────────────────────────────────────────
+
+def test_generate_csv_esg_has_correct_columns():
+    data = {
+        "objectives": [
+            {"name": "Carbon", "target": "100", "actual": "80", "unit": "tCO2", "status": "active"},
+        ]
+    }
+    result = generate_csv(data, "esg")
+    header = result.decode("utf-8").splitlines()[0]
+    assert header == "name,target,actual,unit,status"
+
+
+def test_generate_csv_compliance_has_correct_columns():
+    data = {
+        "frameworks": [
+            {"framework_name": "ISO 14001", "compliant": 8, "total": 10, "percentage": 80.0},
+        ]
+    }
+    result = generate_csv(data, "compliance")
+    header = result.decode("utf-8").splitlines()[0]
+    assert header == "framework_name,compliant,total,percentage"
+
+
+def test_generate_csv_supplier_has_correct_columns():
+    data = {
+        "total_suppliers": 5, "active_suppliers": 4, "inactive_suppliers": 1,
+        "suspended_suppliers": 0, "avg_esg_score": "82.50",
+        "documents_pending_review": 2, "certified_suppliers": 3,
+    }
+    result = generate_csv(data, "supplier")
+    header = result.decode("utf-8").splitlines()[0]
+    assert header == "total,active,inactive,suspended,avg_esg_score,docs_pending,certified"
+
+
+def test_generate_csv_dashboard_has_correct_columns():
+    data = {
+        "kpis": [
+            {"kpi_code": "ACTIVE_EMPLOYEES", "kpi_name": "Active Employees",
+             "kpi_value": "42", "unit": "employees"},
+        ]
+    }
+    result = generate_csv(data, "dashboard")
+    header = result.decode("utf-8").splitlines()[0]
+    assert header == "kpi_code,kpi_name,kpi_value,unit"
