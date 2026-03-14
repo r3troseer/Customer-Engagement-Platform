@@ -86,7 +86,7 @@ uv sync
 
 # 3. Configure environment
 cp .env.example .env
-# Edit .env — set DATABASE_URL, DATABASE_SYNC_URL, JWT_SECRET_KEY
+# Edit .env — set DATABASE_URL, DATABASE_SYNC_URL, JWT_SECRET_KEY, POLYGON_WALLET_PRIVATE_KEY 
 
 # 4. Run database migrations
 uv run alembic upgrade head
